@@ -1,32 +1,67 @@
 package com.g2wang.csv;
 
-import java.util.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CSVReader implements AutoCloseable {
-    private enum State {NOT_ESCAPED, END_OF_ROW, END_OF_FIELD, ILLEGAL,
-        ONE_QUOTE, DOUBLE_QUOTES, QUOTE_NOT_QUOTES, QUOTE_NOT_QUOTES_QUOTE}
-    private enum Char { QUOTE, COMMA, CR, NL, OTHER}
-    private enum Operation {APPEND, NONE, WRITE_FIELD, WRITE_ROW, THROW_EXCEPTION}
-    private static char cma = ',';
 
-    private static Map<Integer, Char> chars = new HashMap<>();
-    static {
-        chars.put((int)'"', Char.QUOTE);
-        chars.put((int) cma, Char.COMMA);
-        chars.put((int)'\r', Char.CR);
-        chars.put((int)'\n', Char.NL);
+    private enum State {
+        NOT_ESCAPED,
+        END_OF_ROW,
+        END_OF_FIELD,
+        ILLEGAL,
+        ONE_QUOTE,
+        DOUBLE_QUOTES,
+        QUOTE_NOT_QUOTES,
+        QUOTE_NOT_QUOTES_QUOTE
     }
 
-    private static EnumMap<Char, EnumMap<State, StateAndOperation>> table
-        = new EnumMap<>(Char.class);
+    private enum Char {
+        QUOTE,
+        COMMA,
+        CR,
+        NL,
+        OTHER
+    }
+
+    private enum Operation {
+        APPEND,
+        NONE,
+        WRITE_FIELD,
+        WRITE_ROW,
+        THROW_EXCEPTION
+    }
+
+    private static final char CMA = ',';
+
+    private static final Map<Integer, Char> chars = new HashMap<>();
+
+    static {
+        chars.put((int) '"', Char.QUOTE);
+        chars.put((int) CMA, Char.COMMA);
+        chars.put((int) '\r', Char.CR);
+        chars.put((int) '\n', Char.NL);
+    }
+
+    private static final EnumMap<Char, EnumMap<State, StateAndOperation>> table = new EnumMap<>(Char.class);
 
     static {
         Char inputChar = Char.QUOTE;
-        EnumMap<State, StateAndOperation> transitionMap
-            = new EnumMap<>(State.class);
+        EnumMap<State, StateAndOperation> transitionMap = new EnumMap<>(State.class);
 
         State currentState = State.NOT_ESCAPED;
         StateAndOperation gotoStateWithOp = new StateAndOperation(State.ONE_QUOTE, Operation.NONE);
@@ -153,21 +188,21 @@ public class CSVReader implements AutoCloseable {
         transitionMap.put(currentState, gotoStateWithOp);
 
         table.put(inputChar, transitionMap);
-
     }
 
     private static class StateAndOperation {
-        private State state;
-        private Operation operation;
+
+        private final State state;
+        private final Operation operation;
 
         public StateAndOperation(State state, Operation operation) {
             this.state = state;
             this.operation = operation;
         }
 
+        @Override
         public String toString() {
-            return "state=" + state + "\n"
-                + "operation=" + operation + "\n";
+            return "state=" + state + "\n" + "operation=" + operation + "\n";
         }
     }
 
@@ -189,7 +224,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV InputStream with specified Charset
+     * static method to get an instance to read a CSV InputStream with specified
+     * Charset
      */
     public static CSVReader fromInputStream(final InputStream inputStream, Charset cs) {
         CSVReader csvReader = new CSVReader();
@@ -198,7 +234,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV InputStream with specified CharsetSecorder
+     * static method to get an instance to read a CSV InputStream with specified
+     * CharsetSecorder
      */
     public static CSVReader fromInputStream(final InputStream inputStream, CharsetDecoder dec) {
         CSVReader csvReader = new CSVReader();
@@ -207,7 +244,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV InputStream with specified charsetName
+     * static method to get an instance to read a CSV InputStream with specified
+     * charsetName
      */
     public static CSVReader fromInputStream(final InputStream inputStream, String charsetName)
             throws UnsupportedEncodingException {
@@ -218,24 +256,26 @@ public class CSVReader implements AutoCloseable {
 
     /**
      * static method to get an instance to read a CSV file
+     *
      * @param csvFile - csv file path
      */
-    public static CSVReader fromFile(final String csvFile)
-        throws FileNotFoundException {
+    public static CSVReader fromFile(final String csvFile) throws FileNotFoundException {
         return fromInputStream(new FileInputStream(csvFile));
     }
 
     /**
      * static method to get an instance to read a CSV file
+     *
      * @param csvFile - csv file
      */
-    public static CSVReader fromFile(final File csvFile)
-        throws FileNotFoundException {
+    public static CSVReader fromFile(final File csvFile) throws FileNotFoundException {
         return fromInputStream(new FileInputStream(csvFile));
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified Charset
+     * static method to get an instance to read a CSV file with specified
+     * Charset
+     *
      * @param csvFile - csv file path
      * @param charset - charset
      */
@@ -245,7 +285,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified Charset
+     * static method to get an instance to read a CSV file with specified
+     * Charset
      */
     public static CSVReader fromFile(final File csvFile, final Charset charset)
             throws FileNotFoundException {
@@ -253,7 +294,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified CharsetDecoder
+     * static method to get an instance to read a CSV file with specified
+     * CharsetDecoder
      */
     public static CSVReader fromFile(final String csvFile, final CharsetDecoder dec)
             throws FileNotFoundException {
@@ -261,7 +303,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified CharsetDecoder
+     * static method to get an instance to read a CSV file with specified
+     * CharsetDecoder
      */
     public static CSVReader fromFile(final File csvFile, final CharsetDecoder dec)
             throws FileNotFoundException {
@@ -269,7 +312,8 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified charsetName, e.g. utf-8
+     * static method to get an instance to read a CSV file with specified
+     * charsetName, e.g. utf-8
      */
     public static CSVReader fromFile(final String csvFile, final String charsetName)
             throws FileNotFoundException, UnsupportedEncodingException {
@@ -277,15 +321,17 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * static method to get an instance to read a CSV file with specified charsetName, e.g. utf-8
+     * static method to get an instance to read a CSV file with specified
+     * charsetName, e.g. utf-8
      */
     public static CSVReader fromFile(final File csvFile, final String charsetName)
-        throws FileNotFoundException, UnsupportedEncodingException {
+            throws FileNotFoundException, UnsupportedEncodingException {
         return fromInputStream(new FileInputStream(csvFile), charsetName);
     }
 
     /**
      * static method to get an instance to read a CSV String
+     *
      * @param csvString - csv string
      */
     public static CSVReader fromString(final String csvString) {
@@ -295,16 +341,14 @@ public class CSVReader implements AutoCloseable {
     }
 
     /**
-     * instance method to get the next row from a CVS input source 
-     * @return a row as an List of String
-     *          or null if no more row is found
+     * instance method to get the next row from a CVS input source
+     *
+     * @return a row as an List of String or null if no more row is found
      * @throws IllegalCSVFormatException, IOException
      */
-    public List<String> nextRow()
-        throws IllegalCSVFormatException, IOException {
+    public List<String> nextRow() throws IllegalCSVFormatException, IOException {
 
-        int readInt = -1;
-        readInt = reader.read();
+        int readInt = reader.read();
         if (readInt == -1) {
             return null;
         }
@@ -324,30 +368,32 @@ public class CSVReader implements AutoCloseable {
             Operation op = stOp.operation;
 
             switch (op) {
-                case APPEND:
-                    sb.append((char)readInt);
-                    break;
-                case WRITE_FIELD:
+                case APPEND ->
+                    sb.append((char) readInt);
+                case WRITE_FIELD -> {
                     sb.append("");
                     row.add(sb.toString());
                     sb.delete(0, sb.length());
                     aState = State.NOT_ESCAPED;
-                   break;
-                case WRITE_ROW:
+                }
+                case WRITE_ROW -> {
                     sb.append("");
                     row.add(sb.toString());
                     return row;
-                case THROW_EXCEPTION:
-                    throw new IllegalCSVFormatException("Illegal CSV Format at char " + (count+1) + ".");
-                default:
-                    //do nothing
-                    break;
+                }
+                case THROW_EXCEPTION ->
+                    throw new IllegalCSVFormatException("Illegal CSV Format at char " + (count + 1) + ".");
+                case NONE -> {
+                    /*do nothing */ }
             }
+            // do nothing
 
             readInt = reader.read();
             count++;
         }
 
+        // When the CSV file has no newline at end of file, flow will reach here.
+        // Otherwise, the previous return statement will return early.
         sb.append("");
         row.add(sb.toString());
         return row;
@@ -362,7 +408,7 @@ public class CSVReader implements AutoCloseable {
             try {
                 reader.close();
             } catch (IOException e) {
-                //do nothing
+                // do nothing
             } finally {
                 reader = null;
             }
@@ -371,11 +417,11 @@ public class CSVReader implements AutoCloseable {
 
     /**
      * set the delimiter if it is not comma
+     *
      * @param delimiter - the delimiter, default comma (,)
      */
     public static void setDelimiter(char delimiter) {
-        chars.remove((int) cma);
-        cma = delimiter;
-        chars.put((int) cma, Char.COMMA);
+        chars.remove((int) CMA);
+        chars.put((int) delimiter, Char.COMMA);
     }
 }
